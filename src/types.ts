@@ -1,0 +1,73 @@
+export type Account = {
+  id: string;
+  name: string;
+  currentBalance: number;
+  displayOrder: number;
+  memo?: string;
+};
+
+export type ScheduleKind = "income" | "expense" | "transfer";
+export type Recurrence = "once" | "monthly" | "bimonthly" | "yearly" | "weekly";
+
+export type BaseSchedule = {
+  id: string;
+  name: string;
+  date: string;
+  amount: number;
+  kind: ScheduleKind;
+  memo?: string;
+  recurrence: Recurrence;
+};
+
+export type IncomeExpenseSchedule = BaseSchedule & {
+  kind: "income" | "expense";
+  accountId: string;
+};
+
+export type TransferSchedule = BaseSchedule & {
+  kind: "transfer";
+  fromAccountId: string;
+  toAccountId: string;
+};
+
+export type Schedule = IncomeExpenseSchedule | TransferSchedule;
+
+export type ScheduleDraft =
+  | (Omit<IncomeExpenseSchedule, "id"> & { id?: string })
+  | (Omit<TransferSchedule, "id"> & { id?: string });
+
+export type LedgerEntry = {
+  id: string;
+  scheduleId: string;
+  date: string;
+  name: string;
+  accountId: string;
+  amount: number;
+  balanceAfter: number;
+  kind: ScheduleKind;
+  memo?: string;
+  transferPairAccountId?: string;
+};
+
+export type AccountProjection = {
+  account: Account;
+  entries: LedgerEntry[];
+  minimumBalance: number;
+  firstShortage?: LedgerEntry;
+};
+
+export type DashboardMetrics = {
+  totalBalance: number;
+  next30Expense: number;
+  next30Income: number;
+  shortageCount: number;
+};
+
+export type TransferSuggestion = {
+  shortageAccount: Account;
+  sourceAccount: Account;
+  shortageDate: string;
+  shortageAmount: number;
+  suggestedAmount: number;
+  moveByDate: string;
+};
