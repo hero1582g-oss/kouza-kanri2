@@ -215,6 +215,17 @@ select:disabled {
   background: #f7faf9;
 }
 
+.schedule-row.editing {
+  outline: 2px solid #0f766e;
+  background: #ecfdf5;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .entry-row time,
 .entry-row span {
   color: #60776e;
@@ -356,6 +367,24 @@ select:disabled {
 .form-grid {
   display: grid;
   gap: 10px;
+}
+
+.wide-field {
+  grid-column: 1 / -1;
+}
+
+.compact-button {
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.form-error {
+  margin: 0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff1f2;
+  color: #9f1239;
+  font-weight: 800;
 }
 
 label {
