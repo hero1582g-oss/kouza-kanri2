@@ -1,15 +1,11 @@
-import { AlertTriangle, CalendarDays, LayoutDashboard, LogOut, Menu, Plus, WalletCards } from "lucide-react";
-import type { User } from "firebase/auth";
+import { AlertTriangle, CalendarDays, LayoutDashboard, Menu, Plus, WalletCards } from "lucide-react";
 import type { ViewKey } from "../views";
 
 type Props = {
-  user: User | null;
   currentView: ViewKey;
   alertCount: number;
-  demoMode: boolean;
   onViewChange: (view: ViewKey) => void;
   onNewSchedule: () => void;
-  onLogout: () => void;
 };
 
 const navItems: { key: ViewKey; label: string; icon: typeof LayoutDashboard }[] = [
@@ -19,7 +15,7 @@ const navItems: { key: ViewKey; label: string; icon: typeof LayoutDashboard }[] 
   { key: "manage", label: "入力", icon: Plus },
 ];
 
-export const Shell = ({ user, currentView, alertCount, demoMode, onViewChange, onNewSchedule, onLogout }: Props) => (
+export const Shell = ({ currentView, alertCount, onViewChange, onNewSchedule }: Props) => (
   <>
     <header className="app-header">
       <div>
@@ -36,12 +32,6 @@ export const Shell = ({ user, currentView, alertCount, demoMode, onViewChange, o
         <button className="icon-button" onClick={onNewSchedule} aria-label="予定を追加">
           <Plus size={20} />
         </button>
-        {user && (
-          <button className="icon-button" onClick={onLogout} aria-label="ログアウト">
-            <LogOut size={18} />
-          </button>
-        )}
-        {demoMode && <span className="demo-badge">デモ</span>}
       </div>
     </header>
     <nav className="bottom-nav" aria-label="主要画面">
