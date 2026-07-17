@@ -7,11 +7,9 @@ import type { Account, Recurrence, Schedule, ScheduleDraft, ScheduleKind } from 
 type Props = {
   accounts: Account[];
   schedules: Schedule[];
-  demoMode: boolean;
   onSaveAccount: (account: Omit<Account, "id"> & { id?: string }) => Promise<void>;
   onSaveSchedule: (schedule: ScheduleDraft) => Promise<void>;
   onRemoveSchedule: (id: string) => Promise<void>;
-  onSeed: () => Promise<void>;
 };
 
 const recurrenceLabels: Record<Recurrence, string> = {
@@ -28,7 +26,7 @@ const kindLabels: Record<ScheduleKind, string> = {
   transfer: "振替",
 };
 
-export const ManageView = ({ accounts, schedules, demoMode, onSaveAccount, onSaveSchedule, onRemoveSchedule, onSeed }: Props) => {
+export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule, onRemoveSchedule }: Props) => {
   const [accountName, setAccountName] = useState("");
   const [balance, setBalance] = useState("");
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
@@ -42,7 +40,6 @@ export const ManageView = ({ accounts, schedules, demoMode, onSaveAccount, onSav
   const [fromAccountId, setFromAccountId] = useState("");
   const [toAccountId, setToAccountId] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
-  const disabled = demoMode;
   const hasAccounts = accounts.length > 0;
 
   useEffect(() => {
@@ -67,7 +64,7 @@ export const ManageView = ({ accounts, schedules, demoMode, onSaveAccount, onSav
   };
 
   const saveAccount = async () => {
-    if (!accountName || disabled) return;
+    if (!accountName) return;
     await onSaveAccount({
       name: accountName,
       currentBalance: Number(balance || 0),
@@ -98,7 +95,6 @@ export const ManageView = ({ accounts, schedules, demoMode, onSaveAccount, onSav
   };
 
   const saveSchedule = async () => {
-    if (disabled) return;
     if (!scheduleName.trim()) {
       setFormError("名称を入力してください。");
       return;
@@ -146,12 +142,6 @@ export const ManageView = ({ accounts, schedules, demoMode, onSaveAccount, onSav
 
   return (
     <div className="page-stack">
-      {demoMode && (
-        <section className="notice">
-          Firebase を設定して Google ログインすると登録できます。今はサンプルデータの閲覧モードです。
-        </section>
-      )}
-
       <section className="section">
         <div className="section-heading">
           <h2>口座を追加</h2>
@@ -159,21 +149,16 @@ export const ManageView = ({ accounts, schedules, demoMode, onSaveAccount, onSav
         <div className="form-grid">
           <label>
             口座名
-            <input value={accountName} onChange={(event) => setAccountName(event.target.value)} placeholder="生活費口座" disabled={disabled} />
+            <input value={accountName} onChange={(event) => setAccountName(event.target.value)} placeholder="生活費口座" />
           </label>
           <label>
             現在残高
-            <input value={balance} onChange={(event) => setBalance(event.target.value)} inputMode="numeric" placeholder="120000" disabled={disabled} />
+            <input value={balance} onChange={(event) => setBalance(event.target.value)} inputMode="numeric" placeholder="120000" />
           </label>
-          <button className="primary-button" onClick={saveAccount} disabled={disabled}>
+          <button className="primary-button" onClick={saveAccount}>
             <Save size={17} />
             保存
           </button>
-          {!demoMode && accounts.length === 0 && (
-            <button className="secondary-button" onClick={onSeed}>
-              サンプル投入
-            </button>
-          )}
         </div>
       </section>
 
@@ -181,7 +166,7 @@ export const ManageView = ({ accounts, schedules, demoMode, onSaveAccount, onSav
         <div className="section-heading">
           <h2>{editingScheduleId ? "予定を編集" : "予定を追加"}</h2>
           {editingScheduleId && (
-            <button className="secondary-button compact-button" onClick={resetScheduleForm} disabled={disabled}>
+            <button className="secondary-button compact-button" onClick={resetScheduleForm}>
               <X size={16} />
               解除
             </button>
@@ -190,19 +175,19 @@ export const ManageView = ({ accounts, schedules, demoMode, onSaveAccount, onSav
         <div className="form-grid">
           <label>
             名称
-            <input value={scheduleName} onChange={(event) => setScheduleName(event.target.value)} placeholder="住宅ローン" disabled={disabled} />
+            <input value={scheduleName} onChange={(event) => setScheduleName(event.target.value)} placeholder="住宅ローン" />
           </label>
           <label>
             日付
-            <input type="date" value={date} onChange={(event) => setDate(event.target.value)} disabled={disabled} />
+            <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
           </label>
           <label>
             金額
-            <input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="numeric" placeholder="65000" disabled={disabled} />
+            <input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="numeric" placeholder="65000" />
           </label>
           <label>
             種別
-            <select value={kind} onChange={(event) => setKind(event.target.value as ScheduleKind)} disabled={disabled}>
+            <select value={kind} onChange={(event) => setKind(event.target.value as ScheduleKind)}>
               <option value="income">収入</option>
               <option value="expense">支出</option>
               <option value="transfer">振替</option>
@@ -210,7 +195,7 @@ export const ManageView = ({ accounts, schedules, demoMode, onSaveAccount, onSav
           </label>
           <label>
             繰り返し
-            <select value={recurrence} onChange={(event) => setRecurrence(event.target.value as Recurrence)} disabled={disabled}>
+            <select value={recurrence} onChange={(event) => setRecurrence(event.target.value as Recurrence)}>
               <option value="once">単発</option>
               <option value="weekly">毎週</option>
               <option value="monthly">毎月</option>
@@ -222,13 +207,13 @@ export const ManageView = ({ accounts, schedules, demoMode, onSaveAccount, onSav
             <>
               <label>
                 出金口座
-                <select value={fromAccountId} onChange={(event) => setFromAccountId(event.target.value)} disabled={disabled || !hasAccounts}>
+                <select value={fromAccountId} onChange={(event) => setFromAccountId(event.target.value)} disabled={!hasAccounts}>
                   {accounts.map((account) => <option value={account.id} key={account.id}>{account.name}</option>)}
                 </select>
               </label>
               <label>
                 入金口座
-                <select value={toAccountId} onChange={(event) => setToAccountId(event.target.value)} disabled={disabled || !hasAccounts}>
+                <select value={toAccountId} onChange={(event) => setToAccountId(event.target.value)} disabled={!hasAccounts}>
                   {accounts.map((account) => <option value={account.id} key={account.id}>{account.name}</option>)}
                 </select>
               </label>
@@ -236,17 +221,17 @@ export const ManageView = ({ accounts, schedules, demoMode, onSaveAccount, onSav
           ) : (
             <label>
               対象口座
-              <select value={accountId} onChange={(event) => setAccountId(event.target.value)} disabled={disabled || !hasAccounts}>
+              <select value={accountId} onChange={(event) => setAccountId(event.target.value)} disabled={!hasAccounts}>
                 {accounts.map((account) => <option value={account.id} key={account.id}>{account.name}</option>)}
               </select>
             </label>
           )}
           <label className="wide-field">
             メモ
-            <input value={memo} onChange={(event) => setMemo(event.target.value)} placeholder="任意" disabled={disabled} />
+            <input value={memo} onChange={(event) => setMemo(event.target.value)} placeholder="任意" />
           </label>
           {formError && <p className="form-error wide-field">{formError}</p>}
-          <button className="primary-button" onClick={saveSchedule} disabled={disabled}>
+          <button className="primary-button" onClick={saveSchedule}>
             <Save size={17} />
             {editingScheduleId ? "更新" : "保存"}
           </button>
@@ -268,10 +253,10 @@ export const ManageView = ({ accounts, schedules, demoMode, onSaveAccount, onSav
                 </span>
               </div>
               <div className="row-actions">
-                <button className="icon-button" disabled={disabled} onClick={() => editSchedule(schedule)} aria-label="編集">
+                <button className="icon-button" onClick={() => editSchedule(schedule)} aria-label="編集">
                   <Pencil size={17} />
                 </button>
-                <button className="icon-button" disabled={disabled} onClick={() => removeSchedule(schedule.id)} aria-label="削除">
+                <button className="icon-button" onClick={() => removeSchedule(schedule.id)} aria-label="削除">
                   <Trash2 size={17} />
                 </button>
               </div>
