@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",
-    "firebase": "^12.0.0",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -20,5 +19,25 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "typescript": "^5.8.0"
+  },
+  "engines": {
+    "node": ">=20.19.0 <21"
+  },
+  "packageManager": "pnpm@10.28.1",
+  "pnpm": {
+    "supportedArchitectures": {
+      "os": [
+        "current",
+        "linux"
+      ],
+      "cpu": [
+        "current",
+        "x64"
+      ],
+      "libc": [
+        "current",
+        "glibc"
+      ]
+    }
   }
 }

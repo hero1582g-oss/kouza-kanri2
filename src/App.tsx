@@ -1,11 +1,9 @@
 import { useMemo, useState } from "react";
-import { AuthGate } from "./components/AuthGate";
 import { CalendarView } from "./components/CalendarView";
 import { Dashboard } from "./components/Dashboard";
 import { ManageView } from "./components/Forms";
 import { Shell } from "./components/Shell";
 import { Timeline } from "./components/Timeline";
-import { useAuth } from "./hooks/useAuth";
 import { useFinanceData } from "./hooks/useFinanceData";
 import { buildProjections, createTransferSuggestions, expandSchedules, getDashboardMetrics } from "./lib/projection";
 import type { LedgerEntry } from "./types";
@@ -14,8 +12,7 @@ import "./styles.css";
 
 export default function App() {
   const [view, setView] = useState<ViewKey>("dashboard");
-  const { user, loading: authLoading, error: authError, login, logout, isFirebaseConfigured } = useAuth();
-  const data = useFinanceData(user?.uid);
+  const data = useFinanceData();
 
   const rawEntries = useMemo(() => expandSchedules(data.schedules, 180), [data.schedules]);
   const projections = useMemo(() => buildProjections(data.accounts, data.schedules, 180), [data.accounts, data.schedules]);
@@ -38,11 +35,9 @@ export default function App() {
         <ManageView
           accounts={data.accounts}
           schedules={data.schedules}
-          demoMode={data.demoMode}
           onSaveAccount={data.saveAccount}
           onSaveSchedule={data.saveSchedule}
           onRemoveSchedule={data.removeSchedule}
-          onSeed={data.seedSampleData}
         />
       );
     }
@@ -50,17 +45,14 @@ export default function App() {
   };
 
   return (
-    <AuthGate configured={isFirebaseConfigured} loading={authLoading} signedIn={Boolean(user)} error={authError} onLogin={login}>
+    <>
       <Shell
-        user={user}
         currentView={view}
         alertCount={metrics.shortageCount}
-        demoMode={data.demoMode}
         onViewChange={setView}
         onNewSchedule={() => setView("manage")}
-        onLogout={logout}
       />
       <main className="app-main">{renderView()}</main>
-    </AuthGate>
+    </>
   );
 }
