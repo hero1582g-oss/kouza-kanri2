@@ -1,7 +1,13 @@
-import type { Account, AccountProjection, DashboardMetrics, LedgerEntry, Schedule, TransferSuggestion } from "../types";
+import type { Account, AccountProjection, DashboardMetrics, LedgerEntry, Schedule, ScheduleOccurrenceOverride, TransferSuggestion } from "../types";
 import { addDays, addMonths, addYears, formatDate, parseLocalDate, todayString } from "./date";
 
 const horizonEnd = (days: number): string => addDays(todayString(), days);
+
+export const daysUntilNextMonthEnd = (): number => {
+  const today = parseLocalDate(todayString());
+  const end = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+  return Math.max(0, Math.ceil((end.getTime() - today.getTime()) / (24 * 60 * 60 * 1000)));
+};
 
 const nextOccurrence = (date: string, recurrence: Schedule["recurrence"]): string => {
   if (recurrence === "weekly") return addDays(date, 7);
@@ -11,7 +17,7 @@ const nextOccurrence = (date: string, recurrence: Schedule["recurrence"]): strin
   return date;
 };
 
-export const expandSchedules = (schedules: Schedule[], days = 180): Omit<LedgerEntry, "balanceAfter">[] => {
+export const expandSchedules = (schedules: Schedule[], days = 180, overrides: ScheduleOccurrenceOverride[] = []): Omit<LedgerEntry, "balanceAfter">[] => {
   const start = todayString();
   const end = horizonEnd(days);
   const entries: Omit<LedgerEntry, "balanceAfter">[] = [];
@@ -26,39 +32,50 @@ export const expandSchedules = (schedules: Schedule[], days = 180): Omit<LedgerE
 
     while (occurrenceDate <= end && guard < 500) {
       if (occurrenceDate >= start) {
-        if (schedule.kind === "transfer") {
+        const override = overrides.find((item) => item.scheduleId === schedule.id && item.originalDate === occurrenceDate);
+        const entryDate = override?.date ?? occurrenceDate;
+        const entryName = override?.name ?? schedule.name;
+        const entryAmount = override?.amount ?? schedule.amount;
+        const entryMemo = override?.memo ?? schedule.memo;
+        if (entryDate >= start && entryDate <= end && schedule.kind === "transfer") {
           entries.push({
             id: `${schedule.id}-${occurrenceDate}-out`,
             scheduleId: schedule.id,
-            date: occurrenceDate,
-            name: schedule.name,
+            date: entryDate,
+            name: entryName,
             accountId: schedule.fromAccountId,
-            amount: -Math.abs(schedule.amount),
+            amount: -Math.abs(entryAmount),
             kind: schedule.kind,
-            memo: schedule.memo,
+            memo: entryMemo,
             transferPairAccountId: schedule.toAccountId,
+            originalDate: occurrenceDate,
+            isOverride: Boolean(override),
           });
           entries.push({
             id: `${schedule.id}-${occurrenceDate}-in`,
             scheduleId: schedule.id,
-            date: occurrenceDate,
-            name: schedule.name,
+            date: entryDate,
+            name: entryName,
             accountId: schedule.toAccountId,
-            amount: Math.abs(schedule.amount),
+            amount: Math.abs(entryAmount),
             kind: schedule.kind,
-            memo: schedule.memo,
+            memo: entryMemo,
             transferPairAccountId: schedule.fromAccountId,
+            originalDate: occurrenceDate,
+            isOverride: Boolean(override),
           });
-        } else {
+        } else if (entryDate >= start && entryDate <= end && schedule.kind !== "transfer") {
           entries.push({
             id: `${schedule.id}-${occurrenceDate}`,
             scheduleId: schedule.id,
-            date: occurrenceDate,
-            name: schedule.name,
+            date: entryDate,
+            name: entryName,
             accountId: schedule.accountId,
-            amount: schedule.kind === "income" ? Math.abs(schedule.amount) : -Math.abs(schedule.amount),
+            amount: schedule.kind === "income" ? Math.abs(entryAmount) : -Math.abs(entryAmount),
             kind: schedule.kind,
-            memo: schedule.memo,
+            memo: entryMemo,
+            originalDate: occurrenceDate,
+            isOverride: Boolean(override),
           });
         }
       }
@@ -71,8 +88,8 @@ export const expandSchedules = (schedules: Schedule[], days = 180): Omit<LedgerE
   return entries.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name));
 };
 
-export const buildProjections = (accounts: Account[], schedules: Schedule[], days = 180): AccountProjection[] => {
-  const entries = expandSchedules(schedules, days);
+export const buildProjections = (accounts: Account[], schedules: Schedule[], days = 180, overrides: ScheduleOccurrenceOverride[] = []): AccountProjection[] => {
+  const entries = expandSchedules(schedules, days, overrides);
   return [...accounts]
     .sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name))
     .map((account) => {

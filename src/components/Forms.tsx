@@ -40,6 +40,7 @@ export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule,
   const [fromAccountId, setFromAccountId] = useState("");
   const [toAccountId, setToAccountId] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const hasAccounts = accounts.length > 0;
 
   useEffect(() => {
@@ -144,26 +145,6 @@ export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule,
     <div className="page-stack">
       <section className="section">
         <div className="section-heading">
-          <h2>口座を追加</h2>
-        </div>
-        <div className="form-grid">
-          <label>
-            口座名
-            <input value={accountName} onChange={(event) => setAccountName(event.target.value)} placeholder="生活費口座" />
-          </label>
-          <label>
-            現在残高
-            <input value={balance} onChange={(event) => setBalance(event.target.value)} inputMode="numeric" placeholder="120000" />
-          </label>
-          <button className="primary-button" onClick={saveAccount}>
-            <Save size={17} />
-            保存
-          </button>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="section-heading">
           <h2>{editingScheduleId ? "予定を編集" : "予定を追加"}</h2>
           {editingScheduleId && (
             <button className="secondary-button compact-button" onClick={resetScheduleForm}>
@@ -263,6 +244,36 @@ export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule,
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="section settings-section">
+        <div className="section-heading">
+          <h2>設定・口座管理</h2>
+          <button className="secondary-button compact-button" onClick={() => setSettingsOpen((value) => !value)}>
+            {settingsOpen ? "設定を閉じる" : "設定を開く"}
+          </button>
+        </div>
+        {settingsOpen && (
+          <>
+            <div className="section-heading subsection-heading">
+              <h3>口座を追加</h3>
+            </div>
+            <div className="form-grid">
+              <label>
+                口座名
+                <input value={accountName} onChange={(event) => setAccountName(event.target.value)} placeholder="生活費口座" />
+              </label>
+              <label>
+                現在残高
+                <input value={balance} onChange={(event) => setBalance(event.target.value)} inputMode="numeric" placeholder="120000" />
+              </label>
+              <button className="primary-button" onClick={saveAccount}>
+                <Save size={17} />
+                保存
+              </button>
+            </div>
+          </>
+        )}
       </section>
     </div>
   );
