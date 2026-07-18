@@ -32,6 +32,19 @@ export type TransferSchedule = BaseSchedule & {
 
 export type Schedule = IncomeExpenseSchedule | TransferSchedule;
 
+export type ScheduleOccurrenceOverride = {
+  id: string;
+  scheduleId: string;
+  originalDate: string;
+  date: string;
+  amount: number;
+  name: string;
+  memo?: string;
+  updatedAt: string;
+};
+
+export type ScheduleOccurrenceOverrideDraft = Omit<ScheduleOccurrenceOverride, "id" | "updatedAt"> & { id?: string };
+
 export type ScheduleDraft =
   | (Omit<IncomeExpenseSchedule, "id"> & { id?: string })
   | (Omit<TransferSchedule, "id"> & { id?: string });
@@ -47,6 +60,8 @@ export type LedgerEntry = {
   kind: ScheduleKind;
   memo?: string;
   transferPairAccountId?: string;
+  originalDate: string;
+  isOverride?: boolean;
 };
 
 export type AccountProjection = {

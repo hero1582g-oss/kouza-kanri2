@@ -5,8 +5,8 @@ import { ManageView } from "./components/Forms";
 import { Shell } from "./components/Shell";
 import { Timeline } from "./components/Timeline";
 import { useFinanceData } from "./hooks/useFinanceData";
-import { buildProjections, createTransferSuggestions, expandSchedules, getDashboardMetrics } from "./lib/projection";
-import type { LedgerEntry } from "./types";
+import { buildProjections, createTransferSuggestions, daysUntilNextMonthEnd, expandSchedules, getDashboardMetrics } from "./lib/projection";
+import type { LedgerEntry, ScheduleOccurrenceOverrideDraft } from "./types";
 import type { ViewKey } from "./views";
 import "./styles.css";
 
@@ -14,8 +14,11 @@ export default function App() {
   const [view, setView] = useState<ViewKey>("dashboard");
   const data = useFinanceData();
 
-  const rawEntries = useMemo(() => expandSchedules(data.schedules, 180), [data.schedules]);
-  const projections = useMemo(() => buildProjections(data.accounts, data.schedules, 180), [data.accounts, data.schedules]);
+  const projectionDays = useMemo(() => Math.max(180, daysUntilNextMonthEnd()), []);
+  const timelineDays = useMemo(() => daysUntilNextMonthEnd(), []);
+  const rawEntries = useMemo(() => expandSchedules(data.schedules, projectionDays, data.occurrenceOverrides), [data.schedules, data.occurrenceOverrides, projectionDays]);
+  const projections = useMemo(() => buildProjections(data.accounts, data.schedules, projectionDays, data.occurrenceOverrides), [data.accounts, data.schedules, data.occurrenceOverrides, projectionDays]);
+  const timelineProjections = useMemo(() => buildProjections(data.accounts, data.schedules, timelineDays, data.occurrenceOverrides), [data.accounts, data.schedules, data.occurrenceOverrides, timelineDays]);
   const allLedgerEntries = useMemo(
     () => projections.flatMap((projection) => projection.entries).sort((a, b) => a.date.localeCompare(b.date)),
     [projections],
@@ -28,7 +31,7 @@ export default function App() {
 
   const renderView = () => {
     if (data.loading) return <div className="center-screen">データを読み込み中...</div>;
-    if (view === "timeline") return <Timeline projections={projections} />;
+    if (view === "timeline") return <Timeline projections={timelineProjections} />;
     if (view === "calendar") return <CalendarView entries={allLedgerEntries as LedgerEntry[]} />;
     if (view === "manage") {
       return (
@@ -41,7 +44,17 @@ export default function App() {
         />
       );
     }
-    return <Dashboard metrics={metrics} projections={projections} upcomingEntries={allLedgerEntries as LedgerEntry[]} suggestions={suggestions} />;
+    return (
+      <Dashboard
+        metrics={metrics}
+        projections={projections}
+        upcomingEntries={allLedgerEntries as LedgerEntry[]}
+        suggestions={suggestions}
+        schedules={data.schedules}
+        onSaveSchedule={data.saveSchedule}
+        onSaveOccurrenceOverride={data.saveOccurrenceOverride as (override: ScheduleOccurrenceOverrideDraft) => Promise<void>}
+      />
+    );
   };
 
   return (
