@@ -567,6 +567,29 @@ select {
   font-size: 16px;
 }
 
+.account-list {
+  margin-top: 8px;
+}
+
+.account-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.account-row > div {
+  display: grid;
+  gap: 4px;
+}
+
+.account-row span,
+.empty-message {
+  color: #527066;
+  font-size: 13px;
+}
+
+.empty-message {
+  margin: 0;
+}
+
 .timeline-stack {
   gap: 10px;
 }
