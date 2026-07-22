@@ -29,6 +29,11 @@ const kindLabels: Record<ScheduleKind, string> = {
 export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule, onRemoveSchedule }: Props) => {
   const [accountName, setAccountName] = useState("");
   const [balance, setBalance] = useState("");
+  const [accountMemo, setAccountMemo] = useState("");
+  const [displayOrder, setDisplayOrder] = useState("");
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [savingAccount, setSavingAccount] = useState(false);
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
   const [scheduleName, setScheduleName] = useState("");
   const [date, setDate] = useState(todayString());
@@ -64,15 +69,56 @@ export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule,
     setFormError(null);
   };
 
-  const saveAccount = async () => {
-    if (!accountName) return;
-    await onSaveAccount({
-      name: accountName,
-      currentBalance: Number(balance || 0),
-      displayOrder: accounts.length + 1,
-    });
+  const resetAccountForm = () => {
+    setEditingAccountId(null);
     setAccountName("");
     setBalance("");
+    setAccountMemo("");
+    setDisplayOrder("");
+    setAccountError(null);
+  };
+
+  const editAccount = (account: Account) => {
+    setEditingAccountId(account.id);
+    setAccountName(account.name);
+    setBalance(String(account.currentBalance));
+    setAccountMemo(account.memo ?? "");
+    setDisplayOrder(String(account.displayOrder));
+    setAccountError(null);
+  };
+
+  const saveAccount = async () => {
+    if (savingAccount) return;
+    if (!accountName.trim()) {
+      setAccountError("口座名を入力してください。");
+      return;
+    }
+    if (balance.trim() === "" || !Number.isFinite(Number(balance))) {
+      setAccountError("現在残高は数値で入力してください。");
+      return;
+    }
+    const order = displayOrder.trim() === "" ? accounts.length + 1 : Number(displayOrder);
+    if (!Number.isInteger(order) || order <= 0) {
+      setAccountError("表示順は1以上の整数で入力してください。");
+      return;
+    }
+
+    setSavingAccount(true);
+    setAccountError(null);
+    try {
+      await onSaveAccount({
+        id: editingAccountId ?? undefined,
+        name: accountName.trim(),
+        currentBalance: Number(balance),
+        memo: accountMemo.trim() || undefined,
+        displayOrder: order,
+      });
+      resetAccountForm();
+    } catch {
+      setAccountError("口座を保存できませんでした。もう一度お試しください。");
+    } finally {
+      setSavingAccount(false);
+    }
   };
 
   const editSchedule = (schedule: Schedule) => {
@@ -256,7 +302,13 @@ export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule,
         {settingsOpen && (
           <>
             <div className="section-heading subsection-heading">
-              <h3>口座を追加</h3>
+              <h3>{editingAccountId ? "口座を編集" : "口座を追加"}</h3>
+              {editingAccountId && (
+                <button className="secondary-button compact-button" onClick={resetAccountForm} disabled={savingAccount}>
+                  <X size={16} />
+                  キャンセル
+                </button>
+              )}
             </div>
             <div className="form-grid">
               <label>
@@ -265,12 +317,39 @@ export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule,
               </label>
               <label>
                 現在残高
-                <input value={balance} onChange={(event) => setBalance(event.target.value)} inputMode="numeric" placeholder="120000" />
+                <input value={balance} onChange={(event) => setBalance(event.target.value)} inputMode="decimal" placeholder="120000" />
               </label>
-              <button className="primary-button" onClick={saveAccount}>
+              <label>
+                メモ
+                <input value={accountMemo} onChange={(event) => setAccountMemo(event.target.value)} placeholder="任意" />
+              </label>
+              <label>
+                表示順
+                <input type="number" min="1" step="1" value={displayOrder} onChange={(event) => setDisplayOrder(event.target.value)} placeholder={String(accounts.length + 1)} />
+              </label>
+              {accountError && <p className="form-error wide-field">{accountError}</p>}
+              <button className="primary-button" onClick={saveAccount} disabled={savingAccount}>
                 <Save size={17} />
-                保存
+                {savingAccount ? "保存中…" : editingAccountId ? "口座を更新" : "口座を追加"}
               </button>
+            </div>
+            <div className="section-heading subsection-heading">
+              <h3>登録済み口座</h3>
+            </div>
+            <div className="entry-list account-list">
+              {[...accounts].sort((left, right) => left.displayOrder - right.displayOrder).map((account) => (
+                <div className={`entry-row account-row ${editingAccountId === account.id ? "editing" : ""}`} key={account.id}>
+                  <div>
+                    <strong>{account.name}</strong>
+                    <span>現在残高 {yen(account.currentBalance)}</span>
+                  </div>
+                  <button className="secondary-button compact-button" onClick={() => editAccount(account)} disabled={savingAccount}>
+                    <Pencil size={16} />
+                    編集
+                  </button>
+                </div>
+              ))}
+              {!accounts.length && <p className="empty-message">登録済みの口座はありません。</p>}
             </div>
           </>
         )}
