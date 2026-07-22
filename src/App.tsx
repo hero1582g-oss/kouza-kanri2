@@ -16,7 +16,10 @@ export default function App() {
 
   const projectionDays = useMemo(() => Math.max(180, daysUntilNextMonthEnd()), []);
   const timelineDays = useMemo(() => daysUntilNextMonthEnd(), []);
-  const rawEntries = useMemo(() => expandSchedules(data.schedules, projectionDays, data.occurrenceOverrides), [data.schedules, data.occurrenceOverrides, projectionDays]);
+  const rawEntries = useMemo(
+    () => expandSchedules(data.schedules, projectionDays, data.occurrenceOverrides),
+    [data.accounts, data.schedules, data.occurrenceOverrides, projectionDays],
+  );
   const projections = useMemo(() => buildProjections(data.accounts, data.schedules, projectionDays, data.occurrenceOverrides), [data.accounts, data.schedules, data.occurrenceOverrides, projectionDays]);
   const timelineProjections = useMemo(() => buildProjections(data.accounts, data.schedules, timelineDays, data.occurrenceOverrides), [data.accounts, data.schedules, data.occurrenceOverrides, timelineDays]);
   const allLedgerEntries = useMemo(
@@ -26,7 +29,7 @@ export default function App() {
   const metrics = useMemo(() => {
     const base = getDashboardMetrics(data.accounts, rawEntries);
     return { ...base, shortageCount: projections.filter((projection) => projection.firstShortage).length };
-  }, [data.accounts, projections, rawEntries]);
+  }, [data.accounts, data.schedules, data.occurrenceOverrides, projections, rawEntries]);
   const suggestions = useMemo(() => createTransferSuggestions(projections), [projections]);
 
   const renderView = () => {

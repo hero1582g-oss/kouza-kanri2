@@ -22,6 +22,8 @@ export const useFinanceData = () => {
 
   const saveAccount = async (account: Omit<Account, "id"> & { id?: string }) => {
     financeStorage.saveAccount(account);
+    // localStorage is the source of truth. Reload every related collection so
+    // all projections use one consistent snapshot immediately after saving.
     reload();
   };
 
