@@ -1,10 +1,10 @@
 import type { Account, Schedule } from "../types";
 
 export const sampleAccounts: Account[] = [
-  { id: "salary", name: "給与口座", currentBalance: 120000, displayOrder: 1, memo: "住宅ローンと給与受取" },
-  { id: "daily", name: "生活費口座", currentBalance: 54000, displayOrder: 2 },
-  { id: "saving", name: "貯蓄口座", currentBalance: 300000, displayOrder: 3 },
-  { id: "rakuten", name: "楽天銀行", currentBalance: 86000, displayOrder: 4 },
+  { id: "salary", name: "給与口座", balanceBaseDate: "2026-07-23", currentBalance: 120000, displayOrder: 1, memo: "住宅ローンと給与受取" },
+  { id: "daily", name: "生活費口座", balanceBaseDate: "2026-07-23", currentBalance: 54000, displayOrder: 2 },
+  { id: "saving", name: "貯蓄口座", balanceBaseDate: "2026-07-23", currentBalance: 300000, displayOrder: 3 },
+  { id: "rakuten", name: "楽天銀行", balanceBaseDate: "2026-07-23", currentBalance: 86000, displayOrder: 4 },
 ];
 
 export const sampleSchedules: Schedule[] = [
