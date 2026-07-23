@@ -21,13 +21,8 @@ export const useFinanceData = () => {
   }, [reload]);
 
   const saveAccount = async (account: Omit<Account, "id"> & { id?: string }) => {
-    const savedAccount = financeStorage.saveAccount(account);
-    setAccounts((current) => {
-      const next = current.some((item) => item.id === savedAccount.id)
-        ? current.map((item) => (item.id === savedAccount.id ? savedAccount : item))
-        : [...current, savedAccount];
-      return next.sort((left, right) => left.displayOrder - right.displayOrder);
-    });
+    financeStorage.saveAccount(account);
+    reload();
   };
 
   const saveSchedule = async (schedule: ScheduleDraft) => {
