@@ -5,6 +5,7 @@ import { ManageView } from "./components/Forms";
 import { Shell } from "./components/Shell";
 import { Timeline } from "./components/Timeline";
 import { useFinanceData } from "./hooks/useFinanceData";
+import { todayString } from "./lib/date";
 import { buildProjections, createTransferSuggestions, daysUntilNextMonthEnd, expandSchedules, getDashboardMetrics } from "./lib/projection";
 import type { LedgerEntry, ScheduleOccurrenceOverrideDraft } from "./types";
 import type { ViewKey } from "./views";
@@ -20,14 +21,24 @@ export default function App() {
     () => expandSchedules(data.schedules, projectionDays, data.occurrenceOverrides),
     [data.accounts, data.schedules, data.occurrenceOverrides, projectionDays],
   );
-  const projections = useMemo(() => buildProjections(data.accounts, data.schedules, projectionDays, data.occurrenceOverrides), [data.accounts, data.schedules, data.occurrenceOverrides, projectionDays]);
-  const timelineProjections = useMemo(() => buildProjections(data.accounts, data.schedules, timelineDays, data.occurrenceOverrides), [data.accounts, data.schedules, data.occurrenceOverrides, timelineDays]);
+  const projections = useMemo(
+    () => buildProjections(data.accounts, data.schedules, projectionDays, data.occurrenceOverrides),
+    [data.accounts, data.schedules, data.occurrenceOverrides, projectionDays],
+  );
+  const timelineProjections = useMemo(
+    () => buildProjections(data.accounts, data.schedules, timelineDays, data.occurrenceOverrides),
+    [data.accounts, data.schedules, data.occurrenceOverrides, timelineDays],
+  );
   const allLedgerEntries = useMemo(
     () => projections.flatMap((projection) => projection.entries).sort((a, b) => a.date.localeCompare(b.date)),
     [projections],
   );
+  const upcomingEntries = useMemo(
+    () => allLedgerEntries.filter((entry) => entry.date >= todayString()),
+    [allLedgerEntries],
+  );
   const metrics = useMemo(() => {
-    const base = getDashboardMetrics(data.accounts, rawEntries);
+    const base = getDashboardMetrics(projections, rawEntries);
     return { ...base, shortageCount: projections.filter((projection) => projection.firstShortage).length };
   }, [data.accounts, data.schedules, data.occurrenceOverrides, projections, rawEntries]);
   const suggestions = useMemo(() => createTransferSuggestions(projections), [projections]);
@@ -51,7 +62,8 @@ export default function App() {
       <Dashboard
         metrics={metrics}
         projections={projections}
-        upcomingEntries={allLedgerEntries as LedgerEntry[]}
+        nextMonthEndProjections={timelineProjections}
+        upcomingEntries={upcomingEntries as LedgerEntry[]}
         suggestions={suggestions}
         schedules={data.schedules}
         onSaveSchedule={data.saveSchedule}
