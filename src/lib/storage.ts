@@ -1,4 +1,5 @@
 import type { Account, Schedule, ScheduleDraft, ScheduleOccurrenceOverride, ScheduleOccurrenceOverrideDraft } from "../types";
+import { todayString } from "./date";
 
 const STORAGE_KEY = "kouza-kanri:finance-data:v1";
 
@@ -23,6 +24,11 @@ const isFinanceData = (value: unknown): value is FinanceData => {
   return Array.isArray(candidate.accounts) && Array.isArray(candidate.schedules);
 };
 
+const persist = (data: FinanceData) => {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+};
+
 const load = (): FinanceData => {
   if (typeof localStorage === "undefined") return emptyData();
 
@@ -32,15 +38,29 @@ const load = (): FinanceData => {
   try {
     const parsed = JSON.parse(raw);
     if (!isFinanceData(parsed)) return emptyData();
-    return { ...parsed, occurrenceOverrides: Array.isArray(parsed.occurrenceOverrides) ? parsed.occurrenceOverrides : [] };
+    const fallbackBaseDate = todayString();
+    let migrated = false;
+    const accounts = parsed.accounts.map((account: Account) => {
+      if (typeof account.balanceBaseDate === "string" && account.balanceBaseDate) return account;
+      migrated = true;
+      return { ...account, balanceBaseDate: fallbackBaseDate };
+    });
+    const data = {
+      ...parsed,
+      accounts,
+      occurrenceOverrides: Array.isArray(parsed.occurrenceOverrides) ? parsed.occurrenceOverrides : [],
+    } as FinanceData;
+    if (migrated) {
+      try {
+        persist(data);
+      } catch {
+        // Keep migrated data available even if storage is full.
+      }
+    }
+    return data;
   } catch {
     return emptyData();
   }
-};
-
-const persist = (data: FinanceData) => {
-  if (typeof localStorage === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 };
 
 const withoutUndefined = <T extends object>(value: T): T =>
@@ -54,8 +74,9 @@ export const financeStorage = {
       ...account,
       id: account.id ?? createId("account"),
     };
-    const index = data.accounts.findIndex((item) => item.id === nextAccount.id);
-    const accounts = index >= 0 ? data.accounts.map((item) => (item.id === nextAccount.id ? nextAccount : item)) : [...data.accounts, nextAccount];
+    const accounts = data.accounts.some((item) => item.id === nextAccount.id)
+      ? data.accounts.map((item) => (item.id === nextAccount.id ? nextAccount : item))
+      : [...data.accounts, nextAccount];
     persist({ ...data, accounts });
     return nextAccount;
   },
