@@ -1,6 +1,7 @@
 export type Account = {
   id: string;
   name: string;
+  balanceBaseDate: string;
   currentBalance: number;
   displayOrder: number;
   memo?: string;
@@ -67,12 +68,15 @@ export type LedgerEntry = {
 export type AccountProjection = {
   account: Account;
   entries: LedgerEntry[];
+  todayBalance: number;
+  endBalance: number;
   minimumBalance: number;
   firstShortage?: LedgerEntry;
 };
 
 export type DashboardMetrics = {
-  totalBalance: number;
+  baseBalanceTotal: number;
+  todayBalanceTotal: number;
   next30Expense: number;
   next30Income: number;
   shortageCount: number;

@@ -567,6 +567,86 @@ select {
   font-size: 16px;
 }
 
+.account-list {
+  margin-top: 8px;
+}
+
+.form-help {
+  margin: 0;
+  color: #527066;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.date-input-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.date-input-action input {
+  flex: 1 1 160px;
+}
+
+.account-forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.account-forecast-card {
+  padding: 16px;
+  border: 1px solid #dce9e4;
+  border-radius: 14px;
+  background: #f8fbfa;
+}
+
+.account-forecast-card h3,
+.account-forecast-card dl {
+  margin: 0;
+}
+
+.account-forecast-card dl {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.account-forecast-card dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.account-forecast-card dt {
+  color: #527066;
+}
+
+.account-forecast-card dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.account-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.account-row > div {
+  display: grid;
+  gap: 4px;
+}
+
+.account-row span,
+.empty-message {
+  color: #527066;
+  font-size: 13px;
+}
+
+.empty-message {
+  margin: 0;
+}
+
 .timeline-stack {
   gap: 10px;
 }

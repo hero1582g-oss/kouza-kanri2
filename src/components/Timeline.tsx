@@ -20,15 +20,15 @@ export const Timeline = ({ projections }: Props) => {
             <div className="account-summary compact-account-summary">
               <div>
                 <h2>{projection.account.name}</h2>
-                <span>現在 {yen(projection.account.currentBalance)}</span>
+                <span>基準日 {formatJapaneseDate(projection.account.balanceBaseDate)} / 基準残高 {yen(projection.account.currentBalance)}</span>
               </div>
               <strong className={projection.minimumBalance < 0 ? "negative" : ""}>最低 {yen(projection.minimumBalance)}</strong>
             </div>
 
             <div className="timeline compact-timeline">
               <div className="timeline-item start">
-                <time>今日</time>
-                <div><strong>現在残高</strong><span>{yen(projection.account.currentBalance)}</span></div>
+                <time>{formatJapaneseDate(projection.account.balanceBaseDate)}</time>
+                <div><strong>基準残高</strong><span>{yen(projection.account.currentBalance)}</span></div>
               </div>
               {visibleEntries.map((entry) => (
                 <div className={`timeline-item ${entry.balanceAfter < 0 ? "shortage" : ""}`} key={entry.id}>

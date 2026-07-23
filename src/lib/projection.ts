@@ -17,27 +17,37 @@ const nextOccurrence = (date: string, recurrence: Schedule["recurrence"]): strin
   return date;
 };
 
-export const expandSchedules = (schedules: Schedule[], days = 180, overrides: ScheduleOccurrenceOverride[] = []): Omit<LedgerEntry, "balanceAfter">[] => {
-  const start = todayString();
+export const expandSchedules = (
+  schedules: Schedule[],
+  days = 180,
+  overrides: ScheduleOccurrenceOverride[] = [],
+  start = todayString(),
+): Omit<LedgerEntry, "balanceAfter">[] => {
   const end = horizonEnd(days);
   const entries: Omit<LedgerEntry, "balanceAfter">[] = [];
 
   schedules.forEach((schedule) => {
+    const scheduleOverrides = overrides.filter((item) => item.scheduleId === schedule.id);
+    const lastRelevantOriginalDate = scheduleOverrides
+      .filter((item) => item.date >= start && item.date <= end)
+      .reduce((latest, item) => item.originalDate > latest ? item.originalDate : latest, end);
+    const firstRelevantOriginalDate = scheduleOverrides
+      .filter((item) => item.date >= start && item.date <= end)
+      .reduce((earliest, item) => item.originalDate < earliest ? item.originalDate : earliest, start);
+    const iterationEnd = lastRelevantOriginalDate > end ? lastRelevantOriginalDate : end;
     let occurrenceDate = schedule.date;
     let guard = 0;
-    while (occurrenceDate < start && schedule.recurrence !== "once" && guard < 500) {
+    while (occurrenceDate < firstRelevantOriginalDate && schedule.recurrence !== "once" && guard < 5000) {
       occurrenceDate = nextOccurrence(occurrenceDate, schedule.recurrence);
       guard += 1;
     }
-
-    while (occurrenceDate <= end && guard < 500) {
-      if (occurrenceDate >= start) {
-        const override = overrides.find((item) => item.scheduleId === schedule.id && item.originalDate === occurrenceDate);
-        const entryDate = override?.date ?? occurrenceDate;
-        const entryName = override?.name ?? schedule.name;
-        const entryAmount = override?.amount ?? schedule.amount;
-        const entryMemo = override?.memo ?? schedule.memo;
-        if (entryDate >= start && entryDate <= end && schedule.kind === "transfer") {
+    while (occurrenceDate <= iterationEnd && guard < 5000) {
+      const override = scheduleOverrides.find((item) => item.originalDate === occurrenceDate);
+      const entryDate = override?.date ?? occurrenceDate;
+      const entryName = override?.name ?? schedule.name;
+      const entryAmount = override?.amount ?? schedule.amount;
+      const entryMemo = override?.memo ?? schedule.memo;
+      if (entryDate >= start && entryDate <= end && schedule.kind === "transfer") {
           entries.push({
             id: `${schedule.id}-${occurrenceDate}-out`,
             scheduleId: schedule.id,
@@ -64,7 +74,7 @@ export const expandSchedules = (schedules: Schedule[], days = 180, overrides: Sc
             originalDate: occurrenceDate,
             isOverride: Boolean(override),
           });
-        } else if (entryDate >= start && entryDate <= end && schedule.kind !== "transfer") {
+      } else if (entryDate >= start && entryDate <= end && schedule.kind !== "transfer") {
           entries.push({
             id: `${schedule.id}-${occurrenceDate}`,
             scheduleId: schedule.id,
@@ -77,7 +87,6 @@ export const expandSchedules = (schedules: Schedule[], days = 180, overrides: Sc
             originalDate: occurrenceDate,
             isOverride: Boolean(override),
           });
-        }
       }
       if (schedule.recurrence === "once") break;
       occurrenceDate = nextOccurrence(occurrenceDate, schedule.recurrence);
@@ -89,33 +98,50 @@ export const expandSchedules = (schedules: Schedule[], days = 180, overrides: Sc
 };
 
 export const buildProjections = (accounts: Account[], schedules: Schedule[], days = 180, overrides: ScheduleOccurrenceOverride[] = []): AccountProjection[] => {
-  const entries = expandSchedules(schedules, days, overrides);
+  const today = todayString();
+  const earliestBaseDate = accounts.reduce(
+    (earliest, account) => account.balanceBaseDate < earliest ? account.balanceBaseDate : earliest,
+    today,
+  );
+  const entries = expandSchedules(schedules, days, overrides, addDays(earliestBaseDate, 1));
   return [...accounts]
     .sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name))
     .map((account) => {
       let balance = account.currentBalance;
-      let minimumBalance = balance;
       const accountEntries = entries
-        .filter((entry) => entry.accountId === account.id)
+        .filter((entry) => entry.accountId === account.id && entry.date > account.balanceBaseDate)
         .map((entry) => {
           balance += entry.amount;
-          minimumBalance = Math.min(minimumBalance, balance);
           return { ...entry, balanceAfter: balance };
         });
+      const todayEntries = accountEntries.filter((entry) => entry.date <= today);
+      const todayBalance = todayEntries.length
+        ? todayEntries[todayEntries.length - 1].balanceAfter
+        : account.currentBalance;
+      const futureEntries = accountEntries.filter((entry) => entry.date >= today);
+      const minimumBalance = futureEntries.reduce(
+        (minimum, entry) => Math.min(minimum, entry.balanceAfter),
+        todayBalance,
+      );
       return {
         account,
         entries: accountEntries,
+        todayBalance,
+        endBalance: accountEntries.length
+          ? accountEntries[accountEntries.length - 1].balanceAfter
+          : account.currentBalance,
         minimumBalance,
-        firstShortage: accountEntries.find((entry) => entry.balanceAfter < 0),
+        firstShortage: futureEntries.find((entry) => entry.balanceAfter < 0),
       };
     });
 };
 
-export const getDashboardMetrics = (accounts: Account[], entries: Omit<LedgerEntry, "balanceAfter">[]): DashboardMetrics => {
+export const getDashboardMetrics = (projections: AccountProjection[], entries: Omit<LedgerEntry, "balanceAfter">[]): DashboardMetrics => {
   const limit = addDays(todayString(), 30);
   const next30 = entries.filter((entry) => entry.date <= limit);
   return {
-    totalBalance: accounts.reduce((sum, account) => sum + account.currentBalance, 0),
+    baseBalanceTotal: projections.reduce((sum, projection) => sum + projection.account.currentBalance, 0),
+    todayBalanceTotal: projections.reduce((sum, projection) => sum + projection.todayBalance, 0),
     next30Expense: Math.abs(next30.filter((entry) => entry.amount < 0).reduce((sum, entry) => sum + entry.amount, 0)),
     next30Income: next30.filter((entry) => entry.amount > 0).reduce((sum, entry) => sum + entry.amount, 0),
     shortageCount: 0,
