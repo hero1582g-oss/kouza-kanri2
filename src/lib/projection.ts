@@ -1,8 +1,6 @@
 import type { Account, AccountProjection, DashboardMetrics, LedgerEntry, Schedule, ScheduleOccurrenceOverride, TransferSuggestion } from "../types";
 import { addDays, addMonths, addYears, formatDate, parseLocalDate, todayString } from "./date";
 
-const horizonEnd = (days: number): string => addDays(todayString(), days);
-
 export const daysUntilNextMonthEnd = (): number => {
   const today = parseLocalDate(todayString());
   const end = new Date(today.getFullYear(), today.getMonth() + 2, 0);
@@ -23,7 +21,7 @@ export const expandSchedules = (
   overrides: ScheduleOccurrenceOverride[] = [],
   start = todayString(),
 ): Omit<LedgerEntry, "balanceAfter">[] => {
-  const end = horizonEnd(days);
+  const end = addDays(start, days);
   const entries: Omit<LedgerEntry, "balanceAfter">[] = [];
 
   schedules.forEach((schedule) => {
@@ -85,29 +83,34 @@ export const expandSchedules = (
   return entries.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name));
 };
 
+/** Expands every occurrence whose effective date is inside an explicit range. */
+export const expandSchedulesForRange = (
+  schedules: Schedule[], start: string, end: string, overrides: ScheduleOccurrenceOverride[] = [],
+): Omit<LedgerEntry, "balanceAfter">[] => {
+  const days = Math.max(0, Math.ceil((parseLocalDate(end).getTime() - parseLocalDate(start).getTime()) / 86400000));
+  return expandSchedules(schedules, days, overrides, start);
+};
+
 export const buildProjections = (
   accounts: Account[], schedules: Schedule[], days = 180, overrides: ScheduleOccurrenceOverride[] = [],
 ): AccountProjection[] => {
   const today = todayString();
-  const earliestBaseDate = accounts.reduce(
-    (earliest, account) => account.balanceBaseDate < earliest ? account.balanceBaseDate : earliest,
-    today,
-  );
-  const entries = expandSchedules(schedules, days, overrides, addDays(earliestBaseDate, 1));
+  // The current balance already includes everything through today. Only
+  // strictly future occurrences participate in a forecast.
+  const entries = expandSchedules(schedules, days, overrides, today).filter((entry) => entry.date > today);
 
   return [...accounts]
     .sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name))
     .map((account) => {
       let balance = account.currentBalance;
       const accountEntries = entries
-        .filter((entry) => entry.accountId === account.id && entry.date > account.balanceBaseDate)
+        .filter((entry) => entry.accountId === account.id)
         .map((entry) => {
           balance += entry.amount;
           return { ...entry, balanceAfter: balance };
         });
-      const todayEntries = accountEntries.filter((entry) => entry.date <= today);
-      const todayBalance = todayEntries.length ? todayEntries[todayEntries.length - 1].balanceAfter : account.currentBalance;
-      const futureEntries = accountEntries.filter((entry) => entry.date >= today);
+      const todayBalance = account.currentBalance;
+      const futureEntries = accountEntries;
       const minimumBalance = futureEntries.reduce((minimum, entry) => Math.min(minimum, entry.balanceAfter), todayBalance);
       return {
         account,
@@ -125,10 +128,10 @@ export const getDashboardMetrics = (
 ): DashboardMetrics => {
   const today = todayString();
   const limit = addDays(today, 30);
-  const next30 = entries.filter((entry) => entry.date >= today && entry.date <= limit);
+  const next30 = entries.filter((entry) => entry.date > today && entry.date <= limit);
   return {
-    baseBalanceTotal: projections.reduce((sum, projection) => sum + projection.account.currentBalance, 0),
-    todayBalanceTotal: projections.reduce((sum, projection) => sum + projection.todayBalance, 0),
+    currentBalanceTotal: projections.reduce((sum, projection) => sum + projection.account.currentBalance, 0),
+    nextMonthEndTotal: projections.reduce((sum, projection) => sum + projection.endBalance, 0),
     next30Expense: Math.abs(next30.filter((entry) => entry.amount < 0).reduce((sum, entry) => sum + entry.amount, 0)),
     next30Income: next30.filter((entry) => entry.amount > 0).reduce((sum, entry) => sum + entry.amount, 0),
     shortageCount: 0,
