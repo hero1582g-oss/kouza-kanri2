@@ -311,6 +311,31 @@ select:disabled {
   gap: 5px;
 }
 
+.timeline-filters {
+  position: sticky;
+  top: 72px;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.timeline-filters label { display: grid; gap: 6px; color: #527066; font-size: 13px; font-weight: 800; }
+.timeline-filters select { width: 100%; min-height: 44px; padding: 0 10px; border: 1px solid #bfd3cc; border-radius: 8px; background: white; }
+.grouped-timeline { padding: 0; overflow: hidden; }
+.timeline-date-group { border-bottom: 1px solid #d8e6e1; padding: 16px 14px; }
+.timeline-date-group h2 { margin: 0 0 10px; font-size: 17px; }
+.timeline-entry { display: grid; gap: 6px; padding: 12px; background: #f7faf9; border-left: 4px solid #9dc9bd; }
+.timeline-entry + .timeline-entry { margin-top: 8px; }
+.timeline-entry.shortage { border-left-color: #e11d48; background: #fff1f2; }
+.timeline-account-name { color: #527066; font-size: 12px; font-weight: 800; }
+.timeline-entry-main { display: flex; justify-content: space-between; gap: 12px; }
+.timeline-entry-main b { white-space: nowrap; }
+.transfer-label, .balance { display: flex; align-items: center; gap: 4px; color: #60776e; font-size: 12px; font-weight: 700; }
+.balance { justify-self: end; }
+.today-line { display: flex; align-items: center; gap: 12px; padding: 18px 14px; color: #0f766e; font-weight: 900; }
+.today-line::before, .today-line::after { content: ""; height: 2px; flex: 1; background: #5eead4; }
+
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));

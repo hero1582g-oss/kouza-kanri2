@@ -1,5 +1,4 @@
 import type { Account, Schedule, ScheduleDraft, ScheduleOccurrenceOverride, ScheduleOccurrenceOverrideDraft } from "../types";
-import { todayString } from "./date";
 
 const STORAGE_KEY = "kouza-kanri:finance-data:v1";
 
@@ -38,25 +37,14 @@ const load = (): FinanceData => {
   try {
     const parsed = JSON.parse(raw);
     if (!isFinanceData(parsed)) return emptyData();
-    const fallbackBaseDate = todayString();
-    let migrated = false;
-    const accounts = parsed.accounts.map((account: Account) => {
-      if (typeof account.balanceBaseDate === "string" && account.balanceBaseDate) return account;
-      migrated = true;
-      return { ...account, balanceBaseDate: fallbackBaseDate };
-    });
+    // balanceBaseDate from older versions is intentionally discarded. The
+    // stored balance is now always the user's actual current bank balance.
+    const accounts = parsed.accounts.map(({ balanceBaseDate: _ignored, ...account }: Account & { balanceBaseDate?: string }) => account);
     const data = {
       ...parsed,
       accounts,
       occurrenceOverrides: Array.isArray(parsed.occurrenceOverrides) ? parsed.occurrenceOverrides : [],
     } as FinanceData;
-    if (migrated) {
-      try {
-        persist(data);
-      } catch {
-        // Keep migrated data available even if storage is full.
-      }
-    }
     return data;
   } catch {
     return emptyData();

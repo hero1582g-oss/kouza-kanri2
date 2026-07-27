@@ -6,7 +6,6 @@ import { formatJapaneseDate, yen } from "../lib/date";
 type Props = {
   metrics: DashboardMetrics;
   projections: AccountProjection[];
-  nextMonthEndProjections: AccountProjection[];
   upcomingEntries: LedgerEntry[];
   suggestions: TransferSuggestion[];
   schedules: Schedule[];
@@ -14,7 +13,7 @@ type Props = {
   onSaveOccurrenceOverride: (override: ScheduleOccurrenceOverrideDraft) => Promise<void>;
 };
 
-export const Dashboard = ({ metrics, projections, nextMonthEndProjections, upcomingEntries, suggestions, schedules, onSaveSchedule, onSaveOccurrenceOverride }: Props) => {
+export const Dashboard = ({ metrics, projections, upcomingEntries, suggestions, schedules, onSaveSchedule, onSaveOccurrenceOverride }: Props) => {
   const alertProjections = projections.filter((projection) => projection.firstShortage);
   const [editingEntry, setEditingEntry] = useState<LedgerEntry | null>(null);
 
@@ -34,11 +33,10 @@ export const Dashboard = ({ metrics, projections, nextMonthEndProjections, upcom
       </section>
 
       <section className="metric-grid">
-        <Metric icon={Wallet} label="基準残高合計" value={yen(metrics.baseBalanceTotal)} />
-        <Metric icon={Wallet} label="本日時点予測合計" value={yen(metrics.todayBalanceTotal)} />
-        <Metric icon={ArrowDownCircle} label="30日支出" value={yen(metrics.next30Expense)} />
-        <Metric icon={ArrowUpCircle} label="30日収入" value={yen(metrics.next30Income)} />
-        <Metric icon={AlertTriangle} label="不足予定" value={`${metrics.shortageCount}件`} danger={metrics.shortageCount > 0} />
+        <Metric icon={Wallet} label="現在残高合計" value={yen(metrics.currentBalanceTotal)} />
+        <Metric icon={ArrowDownCircle} label="30日以内支出" value={yen(metrics.next30Expense)} />
+        <Metric icon={ArrowUpCircle} label="30日以内収入" value={yen(metrics.next30Income)} />
+        <Metric icon={AlertTriangle} label="残高不足件数" value={`${metrics.shortageCount}件`} danger={metrics.shortageCount > 0} />
       </section>
 
       <section className="section">
@@ -48,10 +46,7 @@ export const Dashboard = ({ metrics, projections, nextMonthEndProjections, upcom
             <article className="account-forecast-card" key={projection.account.id}>
               <h3>{projection.account.name}</h3>
               <dl>
-                <div><dt>基準日</dt><dd>{formatJapaneseDate(projection.account.balanceBaseDate)}</dd></div>
-                <div><dt>基準残高</dt><dd>{yen(projection.account.currentBalance)}</dd></div>
-                <div><dt>本日時点予測</dt><dd>{yen(projection.todayBalance)}</dd></div>
-                <div><dt>翌月末予測</dt><dd>{yen(nextMonthEndProjections.find((item) => item.account.id === projection.account.id)?.endBalance ?? projection.todayBalance)}</dd></div>
+                <div><dt>現在残高</dt><dd>{yen(projection.account.currentBalance)}</dd></div>
               </dl>
             </article>
           ))}
