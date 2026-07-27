@@ -29,7 +29,6 @@ const kindLabels: Record<ScheduleKind, string> = {
 export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule, onRemoveSchedule }: Props) => {
   const [accountName, setAccountName] = useState("");
   const [balance, setBalance] = useState("");
-  const [balanceBaseDate, setBalanceBaseDate] = useState(todayString());
   const [accountMemo, setAccountMemo] = useState("");
   const [displayOrder, setDisplayOrder] = useState("");
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
@@ -74,7 +73,6 @@ export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule,
     setEditingAccountId(null);
     setAccountName("");
     setBalance("");
-    setBalanceBaseDate(todayString());
     setAccountMemo("");
     setDisplayOrder("");
     setAccountError(null);
@@ -84,7 +82,6 @@ export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule,
     setEditingAccountId(account.id);
     setAccountName(account.name);
     setBalance(String(account.currentBalance));
-    setBalanceBaseDate(account.balanceBaseDate);
     setAccountMemo(account.memo ?? "");
     setDisplayOrder(String(account.displayOrder));
     setAccountError(null);
@@ -93,8 +90,7 @@ export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule,
   const saveAccount = async () => {
     if (savingAccount) return;
     if (!accountName.trim()) return setAccountError("口座名を入力してください。");
-    if (balance.trim() === "" || !Number.isFinite(Number(balance))) return setAccountError("基準残高は数値で入力してください。");
-    if (!balanceBaseDate) return setAccountError("基準日を入力してください。");
+    if (balance.trim() === "" || !Number.isFinite(Number(balance))) return setAccountError("現在残高は数値で入力してください。");
     const order = displayOrder.trim() === "" ? accounts.length + 1 : Number(displayOrder);
     if (!Number.isInteger(order) || order <= 0) return setAccountError("表示順は1以上の整数で入力してください。");
 
@@ -104,7 +100,6 @@ export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule,
       await onSaveAccount({
         id: editingAccountId ?? undefined,
         name: accountName.trim(),
-        balanceBaseDate,
         currentBalance: Number(balance),
         memo: accountMemo.trim() || undefined,
         displayOrder: order,
@@ -222,10 +217,8 @@ export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule,
               {editingAccountId && <button className="secondary-button compact-button" onClick={resetAccountForm} disabled={savingAccount}><X size={16} />キャンセル</button>}
             </div>
             <div className="form-grid">
-              <p className="form-help wide-field">この日付時点の実際の銀行残高を入力してください。基準日より後の予定を加減して将来残高を計算します。</p>
               <label>口座名<input value={accountName} onChange={(event) => setAccountName(event.target.value)} placeholder="生活費口座" /></label>
-              <label>基準日<div className="date-input-action"><input type="date" value={balanceBaseDate} onChange={(event) => setBalanceBaseDate(event.target.value)} /><button type="button" className="secondary-button compact-button" onClick={() => setBalanceBaseDate(todayString())}>今日を基準日にする</button></div></label>
-              <label>基準残高<input value={balance} onChange={(event) => setBalance(event.target.value)} inputMode="decimal" placeholder="120000" /></label>
+              <label>現在残高<input value={balance} onChange={(event) => setBalance(event.target.value)} inputMode="decimal" placeholder="120000" /></label>
               <label>メモ<input value={accountMemo} onChange={(event) => setAccountMemo(event.target.value)} placeholder="任意" /></label>
               <label>表示順<input type="number" min="1" step="1" value={displayOrder} onChange={(event) => setDisplayOrder(event.target.value)} placeholder={String(accounts.length + 1)} /></label>
               {accountError && <p className="form-error wide-field">{accountError}</p>}
@@ -235,7 +228,7 @@ export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule,
             <div className="entry-list account-list">
               {[...accounts].sort((left, right) => left.displayOrder - right.displayOrder).map((account) => (
                 <div className={`entry-row account-row ${editingAccountId === account.id ? "editing" : ""}`} key={account.id}>
-                  <div><strong>{account.name}</strong><span>基準日 {account.balanceBaseDate} / 基準残高 {yen(account.currentBalance)}</span></div>
+                  <div><strong>{account.name}</strong><span>現在残高 {yen(account.currentBalance)}</span></div>
                   <button className="secondary-button compact-button" onClick={() => editAccount(account)} disabled={savingAccount}><Pencil size={16} />編集</button>
                 </div>
               ))}

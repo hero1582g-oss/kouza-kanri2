@@ -16,7 +16,6 @@ export default function App() {
   const data = useFinanceData();
 
   const projectionDays = useMemo(() => Math.max(180, daysUntilNextMonthEnd()), []);
-  const timelineDays = useMemo(() => daysUntilNextMonthEnd(), []);
   const rawEntries = useMemo(
     () => expandSchedules(data.schedules, projectionDays, data.occurrenceOverrides),
     [data.accounts, data.schedules, data.occurrenceOverrides, projectionDays],
@@ -24,10 +23,6 @@ export default function App() {
   const projections = useMemo(
     () => buildProjections(data.accounts, data.schedules, projectionDays, data.occurrenceOverrides),
     [data.accounts, data.schedules, data.occurrenceOverrides, projectionDays],
-  );
-  const timelineProjections = useMemo(
-    () => buildProjections(data.accounts, data.schedules, timelineDays, data.occurrenceOverrides),
-    [data.accounts, data.schedules, data.occurrenceOverrides, timelineDays],
   );
   const allLedgerEntries = useMemo(
     () => projections.flatMap((projection) => projection.entries).sort((a, b) => a.date.localeCompare(b.date)),
@@ -40,12 +35,12 @@ export default function App() {
   const metrics = useMemo(() => {
     const base = getDashboardMetrics(projections, rawEntries);
     return { ...base, shortageCount: projections.filter((projection) => projection.firstShortage).length };
-  }, [data.accounts, data.schedules, data.occurrenceOverrides, projections, rawEntries]);
+  }, [projections, rawEntries]);
   const suggestions = useMemo(() => createTransferSuggestions(projections), [projections]);
 
   const renderView = () => {
     if (data.loading) return <div className="center-screen">データを読み込み中...</div>;
-    if (view === "timeline") return <Timeline projections={timelineProjections} />;
+    if (view === "timeline") return <Timeline accounts={data.accounts} schedules={data.schedules} occurrenceOverrides={data.occurrenceOverrides} />;
     if (view === "calendar") return <CalendarView entries={allLedgerEntries as LedgerEntry[]} />;
     if (view === "manage") {
       return (
@@ -62,7 +57,6 @@ export default function App() {
       <Dashboard
         metrics={metrics}
         projections={projections}
-        nextMonthEndProjections={timelineProjections}
         upcomingEntries={upcomingEntries as LedgerEntry[]}
         suggestions={suggestions}
         schedules={data.schedules}

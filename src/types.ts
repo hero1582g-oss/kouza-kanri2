@@ -1,7 +1,6 @@
 export type Account = {
   id: string;
   name: string;
-  balanceBaseDate: string;
   currentBalance: number;
   displayOrder: number;
   memo?: string;
@@ -75,8 +74,7 @@ export type AccountProjection = {
 };
 
 export type DashboardMetrics = {
-  baseBalanceTotal: number;
-  todayBalanceTotal: number;
+  currentBalanceTotal: number;
   next30Expense: number;
   next30Income: number;
   shortageCount: number;
