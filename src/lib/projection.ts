@@ -124,14 +124,13 @@ export const buildProjections = (
 };
 
 export const getDashboardMetrics = (
-  projections: AccountProjection[], entries: Omit<LedgerEntry, "balanceAfter">[],
+  accounts: Account[], entries: Omit<LedgerEntry, "balanceAfter">[],
 ): DashboardMetrics => {
   const today = todayString();
   const limit = addDays(today, 30);
   const next30 = entries.filter((entry) => entry.date > today && entry.date <= limit);
   return {
-    currentBalanceTotal: projections.reduce((sum, projection) => sum + projection.account.currentBalance, 0),
-    nextMonthEndTotal: projections.reduce((sum, projection) => sum + projection.endBalance, 0),
+    currentBalanceTotal: accounts.reduce((sum, account) => sum + account.currentBalance, 0),
     next30Expense: Math.abs(next30.filter((entry) => entry.amount < 0).reduce((sum, entry) => sum + entry.amount, 0)),
     next30Income: next30.filter((entry) => entry.amount > 0).reduce((sum, entry) => sum + entry.amount, 0),
     shortageCount: 0,

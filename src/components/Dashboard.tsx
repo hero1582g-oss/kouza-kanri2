@@ -6,7 +6,6 @@ import { formatJapaneseDate, yen } from "../lib/date";
 type Props = {
   metrics: DashboardMetrics;
   projections: AccountProjection[];
-  nextMonthEndProjections: AccountProjection[];
   upcomingEntries: LedgerEntry[];
   suggestions: TransferSuggestion[];
   schedules: Schedule[];
@@ -14,7 +13,7 @@ type Props = {
   onSaveOccurrenceOverride: (override: ScheduleOccurrenceOverrideDraft) => Promise<void>;
 };
 
-export const Dashboard = ({ metrics, projections, nextMonthEndProjections, upcomingEntries, suggestions, schedules, onSaveSchedule, onSaveOccurrenceOverride }: Props) => {
+export const Dashboard = ({ metrics, projections, upcomingEntries, suggestions, schedules, onSaveSchedule, onSaveOccurrenceOverride }: Props) => {
   const alertProjections = projections.filter((projection) => projection.firstShortage);
   const [editingEntry, setEditingEntry] = useState<LedgerEntry | null>(null);
 
@@ -35,7 +34,6 @@ export const Dashboard = ({ metrics, projections, nextMonthEndProjections, upcom
 
       <section className="metric-grid">
         <Metric icon={Wallet} label="現在残高合計" value={yen(metrics.currentBalanceTotal)} />
-        <Metric icon={Wallet} label="翌月末予測合計" value={yen(metrics.nextMonthEndTotal)} />
         <Metric icon={ArrowDownCircle} label="30日以内支出" value={yen(metrics.next30Expense)} />
         <Metric icon={ArrowUpCircle} label="30日以内収入" value={yen(metrics.next30Income)} />
         <Metric icon={AlertTriangle} label="残高不足件数" value={`${metrics.shortageCount}件`} danger={metrics.shortageCount > 0} />
@@ -49,7 +47,6 @@ export const Dashboard = ({ metrics, projections, nextMonthEndProjections, upcom
               <h3>{projection.account.name}</h3>
               <dl>
                 <div><dt>現在残高</dt><dd>{yen(projection.account.currentBalance)}</dd></div>
-                <div><dt>翌月末予測残高</dt><dd>{yen(nextMonthEndProjections.find((item) => item.account.id === projection.account.id)?.endBalance ?? projection.todayBalance)}</dd></div>
               </dl>
             </article>
           ))}
