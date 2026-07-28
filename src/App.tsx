@@ -6,7 +6,7 @@ import { Shell } from "./components/Shell";
 import { Timeline } from "./components/Timeline";
 import { useFinanceData } from "./hooks/useFinanceData";
 import { todayString } from "./lib/date";
-import { buildProjections, createTransferSuggestions, daysUntilNextMonthEnd, expandSchedules, getDashboardMetrics } from "./lib/projection";
+import { buildProjections, createTransferSuggestions, expandSchedules, getDashboardMetrics } from "./lib/projection";
 import type { LedgerEntry, ScheduleOccurrenceOverrideDraft } from "./types";
 import type { ViewKey } from "./views";
 import "./styles.css";
@@ -15,8 +15,7 @@ export default function App() {
   const [view, setView] = useState<ViewKey>("dashboard");
   const data = useFinanceData();
 
-  const projectionDays = useMemo(() => Math.max(180, daysUntilNextMonthEnd()), []);
-  const nextMonthEndDays = useMemo(() => daysUntilNextMonthEnd(), []);
+  const projectionDays = 180;
   const rawEntries = useMemo(
     () => expandSchedules(data.schedules, projectionDays, data.occurrenceOverrides),
     [data.accounts, data.schedules, data.occurrenceOverrides, projectionDays],
@@ -24,10 +23,6 @@ export default function App() {
   const projections = useMemo(
     () => buildProjections(data.accounts, data.schedules, projectionDays, data.occurrenceOverrides),
     [data.accounts, data.schedules, data.occurrenceOverrides, projectionDays],
-  );
-  const nextMonthEndProjections = useMemo(
-    () => buildProjections(data.accounts, data.schedules, nextMonthEndDays, data.occurrenceOverrides),
-    [data.accounts, data.schedules, data.occurrenceOverrides, nextMonthEndDays],
   );
   const allLedgerEntries = useMemo(
     () => projections.flatMap((projection) => projection.entries).sort((a, b) => a.date.localeCompare(b.date)),
@@ -38,9 +33,9 @@ export default function App() {
     [allLedgerEntries],
   );
   const metrics = useMemo(() => {
-    const base = getDashboardMetrics(projections, rawEntries);
-    return { ...base, nextMonthEndTotal: nextMonthEndProjections.reduce((sum, item) => sum + item.endBalance, 0), shortageCount: projections.filter((projection) => projection.firstShortage).length };
-  }, [projections, nextMonthEndProjections, rawEntries]);
+    const base = getDashboardMetrics(data.accounts, rawEntries);
+    return { ...base, shortageCount: projections.filter((projection) => projection.firstShortage).length };
+  }, [data.accounts, projections, rawEntries]);
   const suggestions = useMemo(() => createTransferSuggestions(projections), [projections]);
 
   const renderView = () => {
@@ -62,7 +57,6 @@ export default function App() {
       <Dashboard
         metrics={metrics}
         projections={projections}
-        nextMonthEndProjections={nextMonthEndProjections}
         upcomingEntries={upcomingEntries as LedgerEntry[]}
         suggestions={suggestions}
         schedules={data.schedules}

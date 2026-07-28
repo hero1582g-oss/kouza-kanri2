@@ -75,7 +75,6 @@ export type AccountProjection = {
 
 export type DashboardMetrics = {
   currentBalanceTotal: number;
-  nextMonthEndTotal: number;
   next30Expense: number;
   next30Income: number;
   shortageCount: number;
