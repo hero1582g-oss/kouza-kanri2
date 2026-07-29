@@ -46,7 +46,7 @@ export const Dashboard = ({ metrics, projections, upcomingEntries, suggestions, 
             <article className="account-forecast-card" key={projection.account.id}>
               <h3>{projection.account.name}</h3>
               <dl>
-                <div><dt>現在残高</dt><dd>{yen(projection.account.currentBalance)}</dd></div>
+                <div><dt>現在残高</dt><dd>{yen(projection.todayBalance)}</dd></div>
               </dl>
             </article>
           ))}
