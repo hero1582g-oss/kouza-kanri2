@@ -91,32 +91,70 @@ export const expandSchedulesForRange = (
   return expandSchedules(schedules, days, overrides, start);
 };
 
+const balanceCalculationStart = (
+  schedules: Schedule[], overrides: ScheduleOccurrenceOverride[], fallback: string,
+): string => [...schedules.map((schedule) => schedule.date), ...overrides.map((override) => override.date), fallback]
+  .reduce((earliest, date) => date < earliest ? date : earliest, fallback);
+
+export const applyBalancesToEntries = (
+  accounts: Account[], entries: Omit<LedgerEntry, "balanceAfter">[],
+): LedgerEntry[] => {
+  const balances = new Map(accounts.map((account) => [account.id, account.currentBalance]));
+  return entries.map((entry) => {
+    const balanceAfter = (balances.get(entry.accountId) ?? 0) + entry.amount;
+    balances.set(entry.accountId, balanceAfter);
+    return { ...entry, balanceAfter };
+  });
+};
+
+export const buildLedgerEntriesForRange = (
+  accounts: Account[], schedules: Schedule[], start: string, end: string,
+  overrides: ScheduleOccurrenceOverride[] = [],
+): LedgerEntry[] => {
+  const calculationStart = balanceCalculationStart(schedules, overrides, start);
+  return applyBalancesToEntries(
+    accounts,
+    expandSchedulesForRange(schedules, calculationStart, end, overrides),
+  ).filter((entry) => entry.date >= start);
+};
+
+export const getAccountBalancesAtDate = (
+  accounts: Account[], schedules: Schedule[], date: string,
+  overrides: ScheduleOccurrenceOverride[] = [],
+): Map<string, number> => {
+  const balances = new Map(accounts.map((account) => [account.id, account.currentBalance]));
+  const calculationStart = balanceCalculationStart(schedules, overrides, date);
+  expandSchedulesForRange(schedules, calculationStart, date, overrides).forEach((entry) => {
+    balances.set(entry.accountId, (balances.get(entry.accountId) ?? 0) + entry.amount);
+  });
+  return balances;
+};
+
 export const buildProjections = (
   accounts: Account[], schedules: Schedule[], days = 180, overrides: ScheduleOccurrenceOverride[] = [],
 ): AccountProjection[] => {
   const today = todayString();
-  // The current balance already includes everything through today. Only
-  // strictly future occurrences participate in a forecast.
+  const todayBalances = getAccountBalancesAtDate(accounts, schedules, today, overrides);
   const entries = expandSchedules(schedules, days, overrides, today).filter((entry) => entry.date > today);
 
   return [...accounts]
     .sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name))
     .map((account) => {
-      let balance = account.currentBalance;
+      const todayBalance = todayBalances.get(account.id) ?? account.currentBalance;
+      let balance = todayBalance;
       const accountEntries = entries
         .filter((entry) => entry.accountId === account.id)
         .map((entry) => {
           balance += entry.amount;
           return { ...entry, balanceAfter: balance };
         });
-      const todayBalance = account.currentBalance;
       const futureEntries = accountEntries;
       const minimumBalance = futureEntries.reduce((minimum, entry) => Math.min(minimum, entry.balanceAfter), todayBalance);
       return {
         account,
         entries: accountEntries,
         todayBalance,
-        endBalance: accountEntries.length ? accountEntries[accountEntries.length - 1].balanceAfter : account.currentBalance,
+        endBalance: accountEntries.length ? accountEntries[accountEntries.length - 1].balanceAfter : todayBalance,
         minimumBalance,
         firstShortage: futureEntries.find((entry) => entry.balanceAfter < 0),
       };
@@ -124,13 +162,13 @@ export const buildProjections = (
 };
 
 export const getDashboardMetrics = (
-  accounts: Account[], entries: Omit<LedgerEntry, "balanceAfter">[],
+  projections: AccountProjection[], entries: Omit<LedgerEntry, "balanceAfter">[],
 ): DashboardMetrics => {
   const today = todayString();
   const limit = addDays(today, 30);
   const next30 = entries.filter((entry) => entry.date > today && entry.date <= limit);
   return {
-    currentBalanceTotal: accounts.reduce((sum, account) => sum + account.currentBalance, 0),
+    currentBalanceTotal: projections.reduce((sum, projection) => sum + projection.todayBalance, 0),
     next30Expense: Math.abs(next30.filter((entry) => entry.amount < 0).reduce((sum, entry) => sum + entry.amount, 0)),
     next30Income: next30.filter((entry) => entry.amount > 0).reduce((sum, entry) => sum + entry.amount, 0),
     shortageCount: 0,
