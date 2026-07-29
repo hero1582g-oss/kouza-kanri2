@@ -33,9 +33,9 @@ export default function App() {
     [allLedgerEntries],
   );
   const metrics = useMemo(() => {
-    const base = getDashboardMetrics(data.accounts, rawEntries);
+    const base = getDashboardMetrics(projections, rawEntries);
     return { ...base, shortageCount: projections.filter((projection) => projection.firstShortage).length };
-  }, [data.accounts, projections, rawEntries]);
+  }, [projections, rawEntries]);
   const suggestions = useMemo(() => createTransferSuggestions(projections), [projections]);
 
   const renderView = () => {
