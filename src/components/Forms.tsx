@@ -26,6 +26,8 @@ const kindLabels: Record<ScheduleKind, string> = {
   transfer: "振替",
 };
 
+const dateInputStyle = { minWidth: 0, maxWidth: "100%" } as const;
+
 export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule, onRemoveSchedule }: Props) => {
   const [accountName, setAccountName] = useState("");
   const [balance, setBalance] = useState("");
@@ -171,7 +173,7 @@ export const ManageView = ({ accounts, schedules, onSaveAccount, onSaveSchedule,
         </div>
         <div className="form-grid">
           <label>名称<input value={scheduleName} onChange={(event) => setScheduleName(event.target.value)} placeholder="住宅ローン" /></label>
-          <label>日付<input type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
+          <label style={{ minWidth: 0 }}>日付<input type="date" value={date} onChange={(event) => setDate(event.target.value)} style={dateInputStyle} /></label>
           <label>金額<input value={amount} onChange={(event) => setAmount(event.target.value)} inputMode="numeric" placeholder="65000" /></label>
           <label>種別<select value={kind} onChange={(event) => setKind(event.target.value as ScheduleKind)}><option value="income">収入</option><option value="expense">支出</option><option value="transfer">振替</option></select></label>
           <label>繰り返し<select value={recurrence} onChange={(event) => setRecurrence(event.target.value as Recurrence)}><option value="once">単発</option><option value="weekly">毎週</option><option value="monthly">毎月</option><option value="bimonthly">隔月</option><option value="yearly">毎年</option></select></label>
