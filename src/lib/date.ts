@@ -1,4 +1,14 @@
-export const formatDate = (date: Date): string => date.toISOString().slice(0, 10);
+const pad2 = (value: number): string => String(value).padStart(2, "0");
+
+/**
+ * Formats a Date using its local calendar components.
+ *
+ * Do not use toISOString() here: in time zones ahead of UTC (such as Japan),
+ * local midnight is represented as the previous UTC date. That caused the app
+ * to treat early-morning transactions as belonging to yesterday.
+ */
+export const formatDate = (date: Date): string =>
+  `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 
 export const todayString = (): string => formatDate(new Date());
 
