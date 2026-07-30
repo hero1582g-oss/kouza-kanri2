@@ -3,7 +3,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { Ref } from "react";
 import type { Account, LedgerEntry, Schedule, ScheduleOccurrenceOverride } from "../types";
 import { parseLocalDate, todayString, yen } from "../lib/date";
-import { expandSchedulesForRange } from "../lib/projection";
+import { buildLedgerEntriesForRange } from "../lib/projection";
 
 type Props = { accounts: Account[]; schedules: Schedule[]; occurrenceOverrides: ScheduleOccurrenceOverride[] };
 
@@ -28,14 +28,8 @@ export const Timeline = ({ accounts, schedules, occurrenceOverrides }: Props) =>
   }, [currentYear, schedules, occurrenceOverrides]);
 
   const entries = useMemo(() => {
-    const raw = expandSchedulesForRange(schedules, `${year}-01-01`, `${year}-12-31`, occurrenceOverrides)
+    return buildLedgerEntriesForRange(accounts, schedules, `${year}-01-01`, `${year}-12-31`, occurrenceOverrides)
       .filter((entry) => accountId === "all" || entry.accountId === accountId);
-    const balances = new Map(accounts.map((account) => [account.id, account.currentBalance]));
-    return raw.map((entry) => {
-      const balanceAfter = (balances.get(entry.accountId) ?? 0) + entry.amount;
-      balances.set(entry.accountId, balanceAfter);
-      return { ...entry, balanceAfter } as LedgerEntry;
-    });
   }, [accounts, schedules, occurrenceOverrides, accountId, year]);
 
   const groups = useMemo(() => entries.reduce<Record<string, LedgerEntry[]>>((result, entry) => {
@@ -58,7 +52,7 @@ export const Timeline = ({ accounts, schedules, occurrenceOverrides }: Props) =>
     </section>
     <section className="section grouped-timeline">
       {dates.map((date, index) => {
-        const showTodayBefore = renderToday && !todayInserted && date >= todayString();
+        const showTodayBefore = renderToday && !todayInserted && date > todayString();
         if (showTodayBefore) todayInserted = true;
         return <div key={date} ref={index === 0 ? firstRef : index === dates.length - 1 ? lastRef : undefined}>
           {showTodayBefore && <TodayLine ref={todayRef} />}
